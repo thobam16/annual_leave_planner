@@ -92,7 +92,21 @@
             "2026-05-25": "Spring Bank Holiday",
             "2026-08-31": "Summer Bank Holiday",
             "2026-12-25": "Christmas Day",
-            "2026-12-26": "Boxing Day"
+            "2026-12-28": "Boxing Day (Substitute)",
+            "2027-01-01": "New Year's Day",
+            "2027-03-26": "Good Friday",
+            "2027-03-29": "Easter Monday",
+            "2027-05-03": "Early May Bank Holiday",
+            "2027-05-31": "Spring Bank Holiday",
+            "2027-08-30": "Summer Bank Holiday",
+            "2027-12-27": "Christmas Day (Substitute)",
+            "2027-12-28": "Boxing Day (Substitute)"
+        };
+
+        // Day of Care Holidays (as updated)
+        const DOC_HOLIDAYS = {
+            "2025-11-21": "November DOC 2025",
+            "2026-02-13": "February DOC 2026 (predicted)"
         };
 
         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -115,11 +129,12 @@
 
         // --- COMPONENTS ---
 
-        const CalendarDay = ({ day, month, year, selected, bankHolidayName, isSabbatical, onClick }) => {
+        const CalendarDay = ({ day, month, year, selected, bankHolidayName, docHolidayName, isSabbatical, onClick }) => {
             if (!day) return <div className="h-10 sm:h-12 bg-transparent"></div>;
 
             const isWknd = isWeekend(year, month, day);
             const isBankHol = !!bankHolidayName;
+            const isDocHol = !!docHolidayName;
             
             // Styles
             let bgClass = "bg-white hover:bg-slate-50";
@@ -136,6 +151,12 @@
                 bgClass = "bg-amber-50";
                 textClass = "text-amber-700 font-medium";
                 borderClass = "border border-amber-200";
+            }
+
+            if (isDocHol) {
+                bgClass = "bg-emerald-50";
+                textClass = "text-emerald-700 font-medium";
+                borderClass = "border border-emerald-200";
             }
 
             if (isSabbatical) {
@@ -157,10 +178,11 @@
                         h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-200 relative
                         ${bgClass} ${textClass} ${borderClass} ${cursorClass}
                     `}
-                    title={isBankHol ? bankHolidayName : (isSabbatical ? "Sabbatical Period" : "")}
+                    title={isBankHol ? bankHolidayName : (isDocHol ? docHolidayName : (isSabbatical ? "Sabbatical Period" : ""))}
                 >
                     <span>{day}</span>
                     {isBankHol && !selected && <div className="w-1 h-1 rounded-full bg-amber-500 mt-1"></div>}
+                    {isDocHol && !selected && <div className="w-1 h-1 rounded-full bg-emerald-500 mt-1"></div>}
                     {isSabbatical && !selected && <div className="w-1 h-1 rounded-full bg-purple-500 mt-1"></div>}
                 </div>
             );
@@ -195,6 +217,7 @@
                             const dateStr = toDateString(year, monthIndex, day);
                             const isSelected = selectedDates.has(dateStr);
                             const bhName = showBankHolidays ? UK_BANK_HOLIDAYS[dateStr] : null;
+                            const docName = DOC_HOLIDAYS[dateStr];
 
                             // Check Sabbatical
                             const isSabbatical = sabbaticals.some(range => {
@@ -209,8 +232,9 @@
                                     year={year}
                                     selected={isSelected}
                                     bankHolidayName={bhName}
+                                    docHolidayName={docName}
                                     isSabbatical={isSabbatical}
-                                    onClick={() => onDateClick(dateStr, bhName, isSabbatical)}
+                                    onClick={() => onDateClick(dateStr, bhName, docName, isSabbatical)}
                                 />
                             );
                         })}
@@ -411,7 +435,7 @@
             }, [startYear]);
 
             // Handlers
-            const handleDateClick = (dateStr, isBankHoliday, isSabbatical) => {
+            const handleDateClick = (dateStr, isBankHoliday, isDocHoliday, isSabbatical) => {
                 const newSet = new Set(selectedDates);
                 
                 if (newSet.has(dateStr)) {
@@ -419,6 +443,10 @@
                 } else {
                     if (isBankHoliday && bankHolidaysEnabled) {
                         alert("That's a Bank Holiday! Usually you don't need to book this.");
+                        return; 
+                    }
+                    if (isDocHoliday) {
+                        alert("That's a Day of Care Holiday! You don't need to book this.");
                         return; 
                     }
                     if (isSabbatical) {
@@ -703,6 +731,10 @@
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded"></div>
                                 <span>Bank Holiday</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-emerald-50 border border-emerald-200 rounded"></div>
+                                <span>Day of Care</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-slate-100 border border-slate-100 rounded"></div>
