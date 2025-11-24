@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annual Leave Planner (April-April)</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jsPDF for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Scrollbar for the list */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        @media print {
+            .no-print { display: none; }
+            .print-only { display: block; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>,
+            ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            Sun: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        };
+
+        // --- UTILS & DATA ---
+
+        // Known UK Bank Holidays (2024-2027)
+        // Format: YYYY-MM-DD
+        const UK_BANK_HOLIDAYS = {
+            "2024-01-01": "New Year's Day",
+            "2024-03-29": "Good Friday",
+            "2024-04-01": "Easter Monday",
+            "2024-05-06": "Early May Bank Holiday",
+            "2024-05-27": "Spring Bank Holiday",
+            "2024-08-26": "Summer Bank Holiday",
+            "2024-12-25": "Christmas Day",
+            "2024-12-26": "Boxing Day",
+            "2025-01-01": "New Year's Day",
+            "2025-04-18": "Good Friday",
+            "2025-04-21": "Easter Monday",
+            "2025-05-05": "Early May Bank Holiday",
+            "2025-05-26": "Spring Bank Holiday",
+            "2025-08-25": "Summer Bank Holiday",
+            "2025-12-25": "Christmas Day",
+            "2025-12-26": "Boxing Day",
+            "2026-01-01": "New Year's Day",
+            "2026-04-03": "Good Friday",
+            "2026-04-06": "Easter Monday",
+            "2026-05-04": "Early May Bank Holiday",
+            "2026-05-25": "Spring Bank Holiday",
+            "2026-08-31": "Summer Bank Holiday",
+            "2026-12-25": "Christmas Day",
+            "2026-12-26": "Boxing Day"
+        };
+
+        const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+        // Helper to check weekends
+        const isWeekend = (year, month, day) => {
+            const dt = new Date(year, month, day);
+            const d = dt.getDay();
+            return d === 0 || d === 6; // Sun or Sat
+        };
+
+        // Format Date string YYYY-MM-DD
+        const toDateString = (year, month, day) => {
+            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        };
+
+        const niceDateFormat = (dateStr) => {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        };
+
+        // --- COMPONENTS ---
+
+        const BankHolidayBadge = ({ name }) => (
+            <div className="group relative inline-block ml-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block cursor-help"></span>
+                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-max bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    {name}
+                </span>
+            </div>
+        );
+
+        const CalendarDay = ({ day, month, year, selected, bankHolidayName, isShutdown, onClick }) => {
+            if (!day) return <div className="h-10 sm:h-12 bg-transparent"></div>;
+
+            const isWknd = isWeekend(year, month, day);
+            const isBankHol = !!bankHolidayName;
+            
+            // Styles
+            let bgClass = "bg-white hover:bg-slate-50";
+            let textClass = "text-slate-700";
+            let borderClass = "border border-slate-100";
+            let cursorClass = "cursor-pointer";
+
+            if (isWknd) {
+                bgClass = "bg-slate-100";
+                textClass = "text-slate-400";
+            }
+            
+            if (isBankHol) {
+                bgClass = "bg-amber-50";
+                textClass = "text-amber-700 font-medium";
+                borderClass = "border border-amber-200";
+            }
+
+            if (isShutdown) {
+                bgClass = "bg-purple-50";
+                textClass = "text-purple-700 font-medium";
+                borderClass = "border border-purple-200";
+            }
+
+            if (selected) {
+                bgClass = "bg-blue-600 shadow-md";
+                textClass = "text-white font-semibold";
+                borderClass = "border border-blue-600";
+            }
+
+            return (
+                <div 
+                    onClick={() => onClick(day)}
+                    className={`
+                        h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-200 relative
+                        ${bgClass} ${textClass} ${borderClass} ${cursorClass}
+                    `}
+                    title={isBankHol ? bankHolidayName : (isShutdown ? "Shutdown Period" : "")}
+                >
+                    <span>{day}</span>
+                    {isBankHol && !selected && <div className="w-1 h-1 rounded-full bg-amber-500 mt-1"></div>}
+                    {isShutdown && !selected && <div className="w-1 h-1 rounded-full bg-purple-500 mt-1"></div>}
+                </div>
+            );
+        };
+
+        const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, shutdownRanges }) => {
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const firstDayIndex = new Date(year, monthIndex, 1).getDay(); // 0 = Sun
+
+            const days = [];
+            // Empty slots for start of month
+            for (let i = 0; i < firstDayIndex; i++) {
+                days.push(null);
+            }
+            // Actual days
+            for (let i = 1; i <= daysInMonth; i++) {
+                days.push(i);
+            }
+
+            return (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm break-inside-avoid">
+                    <h3 className="font-bold text-slate-800 mb-3 flex items-center justify-between">
+                        {MONTH_NAMES[monthIndex]} <span className="text-xs font-normal text-slate-400">{year}</span>
+                    </h3>
+                    <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                        {DAY_NAMES.map(d => <span key={d} className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{d}</span>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                        {days.map((day, idx) => {
+                            if (!day) return <CalendarDay key={`empty-${idx}`} />;
+                            
+                            const dateStr = toDateString(year, monthIndex, day);
+                            const isSelected = selectedDates.has(dateStr);
+                            const bhName = showBankHolidays ? UK_BANK_HOLIDAYS[dateStr] : null;
+
+                            // Check shutdown
+                            const isShutdown = shutdownRanges.some(range => {
+                                return dateStr >= range.start && dateStr <= range.end;
+                            });
+
+                            return (
+                                <CalendarDay 
+                                    key={dateStr}
+                                    day={day}
+                                    month={monthIndex}
+                                    year={year}
+                                    selected={isSelected}
+                                    bankHolidayName={bhName}
+                                    isShutdown={isShutdown}
+                                    onClick={() => onDateClick(dateStr, bhName, isShutdown)}
+                                />
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const ExportPanel = ({ selectedDates, allowance, userName, leaveYear }) => {
+            
+            const generateICS = () => {
+                const dates = Array.from(selectedDates).sort();
+                if (dates.length === 0) return alert("No dates selected");
+
+                // Group consecutive dates
+                const events = [];
+                let currentRange = null;
+
+                const addRange = (range) => {
+                    const start = range[0].replace(/-/g, '');
+                    // End date in ICS is exclusive, so we add 1 day to the last date
+                    const endDateObj = new Date(range[range.length - 1]);
+                    endDateObj.setDate(endDateObj.getDate() + 1);
+                    const end = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
+                    
+                    events.push({ start, end });
+                };
+
+                dates.forEach((dateStr, idx) => {
+                    const currentDate = new Date(dateStr);
+                    if (!currentRange) {
+                        currentRange = [dateStr];
+                    } else {
+                        const lastDate = new Date(currentRange[currentRange.length - 1]);
+                        const diffTime = Math.abs(currentDate - lastDate);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        
+                        if (diffDays === 1) {
+                            currentRange.push(dateStr);
+                        } else {
+                            addRange(currentRange);
+                            currentRange = [dateStr];
+                        }
+                    }
+                });
+                if (currentRange) addRange(currentRange);
+
+                let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//AnnualLeavePlanner//EN\r\n";
+                events.forEach(evt => {
+                    icsContent += "BEGIN:VEVENT\r\n";
+                    icsContent += `DTSTART;VALUE=DATE:${evt.start}\r\n`;
+                    icsContent += `DTEND;VALUE=DATE:${evt.end}\r\n`;
+                    icsContent += "SUMMARY:Annual Leave\r\n";
+                    icsContent += "TRANSP:OPAQUE\r\n"; // Shows as Busy
+                    icsContent += "END:VEVENT\r\n";
+                });
+                icsContent += "END:VCALENDAR";
+
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.setAttribute('download', `leave_allowance_${leaveYear}.ics`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const generatePDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const dates = Array.from(selectedDates).sort();
+
+                doc.setFontSize(20);
+                doc.text("Annual Leave Summary", 20, 20);
+                
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(`Name: ${userName || "N/A"}`, 20, 30);
+                doc.text(`Leave Year: ${leaveYear}`, 20, 36);
+                doc.text(`Allowance Used: ${dates.length} / ${allowance} days`, 20, 42);
+
+                doc.setLineWidth(0.5);
+                doc.line(20, 48, 190, 48);
+
+                doc.setFontSize(10);
+                doc.setTextColor(0);
+                
+                let y = 60;
+                let x = 20;
+                
+                // Group by month for nicer display
+                const byMonth = {};
+                dates.forEach(d => {
+                    const m = d.substring(0, 7); // YYYY-MM
+                    if(!byMonth[m]) byMonth[m] = [];
+                    byMonth[m].push(d);
+                });
+
+                Object.keys(byMonth).forEach(monthKey => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    
+                    const [yr, mo] = monthKey.split('-');
+                    const monthName = MONTH_NAMES[parseInt(mo) - 1];
+                    
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${monthName} ${yr}`, x, y);
+                    y += 6;
+                    doc.setFont(undefined, 'normal');
+                    
+                    byMonth[monthKey].forEach(dateStr => {
+                         if (y > 280) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        doc.text(`• ${niceDateFormat(dateStr)}`, x + 5, y);
+                        y += 5;
+                    });
+                    y += 5;
+                });
+
+                doc.save(`leave_report_${leaveYear}.pdf`);
+            };
+
+            return (
+                <div className="flex gap-2 mt-4">
+                    <button onClick={generateICS} className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                        <Icons.Download /> Export ICS
+                    </button>
+                    <button onClick={generatePDF} className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                        <Icons.FileText /> Export PDF
+                    </button>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // State
+            const [allowance, setAllowance] = useState(30);
+            const [startYear, setStartYear] = useState(() => {
+                const now = new Date();
+                // If we are in Jan/Feb/Mar, the leave year started previous year
+                return now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
+            });
+            const [selectedDates, setSelectedDates] = useState(new Set());
+            const [bankHolidaysEnabled, setBankHolidaysEnabled] = useState(true);
+            const [userName, setUserName] = useState("My Leave");
+            const [shutdownStart, setShutdownStart] = useState("");
+            const [shutdownEnd, setShutdownEnd] = useState("");
+            const [showSettings, setShowSettings] = useState(false);
+
+            // Load from LocalStorage
+            useEffect(() => {
+                const saved = localStorage.getItem('annual-leave-data');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    setAllowance(data.allowance || 30);
+                    setStartYear(data.startYear || new Date().getFullYear());
+                    setSelectedDates(new Set(data.selectedDates || []));
+                    setBankHolidaysEnabled(data.bankHolidaysEnabled ?? true);
+                    setUserName(data.userName || "My Leave");
+                    if(data.shutdown) {
+                        setShutdownStart(data.shutdown.start);
+                        setShutdownEnd(data.shutdown.end);
+                    }
+                }
+            }, []);
+
+            // Save to LocalStorage
+            useEffect(() => {
+                localStorage.setItem('annual-leave-data', JSON.stringify({
+                    allowance,
+                    startYear,
+                    selectedDates: Array.from(selectedDates),
+                    bankHolidaysEnabled,
+                    userName,
+                    shutdown: { start: shutdownStart, end: shutdownEnd }
+                }));
+            }, [allowance, startYear, selectedDates, bankHolidaysEnabled, userName, shutdownStart, shutdownEnd]);
+
+            const used = selectedDates.size;
+            const remaining = allowance - used;
+
+            // Generate the 12 months from April YYYY to March YYYY+1
+            const calendarMonths = useMemo(() => {
+                const months = [];
+                // April (3) to December (11) of startYear
+                for (let m = 3; m <= 11; m++) {
+                    months.push({ month: m, year: startYear });
+                }
+                // January (0) to March (2) of startYear + 1
+                for (let m = 0; m <= 2; m++) {
+                    months.push({ month: m, year: startYear + 1 });
+                }
+                return months;
+            }, [startYear]);
+
+            // Handlers
+            const handleDateClick = (dateStr, isBankHoliday, isShutdown) => {
+                const newSet = new Set(selectedDates);
+                
+                if (newSet.has(dateStr)) {
+                    newSet.delete(dateStr);
+                } else {
+                    if (isBankHoliday && bankHolidaysEnabled) {
+                        // Optional: Allow selecting BH if user really wants to burn a day?
+                        // For this planner, let's assume BH is free and shouldn't be selected as 'leave' usually
+                        // But some companies deduct BH. Let's block it for now but maybe allow via override if we had more settings.
+                        alert("That's a Bank Holiday! Usually you don't need to book this.");
+                        return; 
+                    }
+                    if (isShutdown) {
+                         // Similar logic for shutdowns
+                         if(!confirm("This is within a Company Shutdown period. Do you still want to book this as personal leave?")) return;
+                    }
+                    if (used >= allowance) {
+                        alert("You have reached your leave allowance limit!");
+                        return;
+                    }
+                    newSet.add(dateStr);
+                }
+                setSelectedDates(newSet);
+            };
+
+            const removeDate = (dateStr) => {
+                const newSet = new Set(selectedDates);
+                newSet.delete(dateStr);
+                setSelectedDates(newSet);
+            };
+
+            const clearAll = () => {
+                if(confirm("Are you sure you want to clear all selected dates?")) {
+                    setSelectedDates(new Set());
+                }
+            };
+
+            const shutdownRanges = useMemo(() => {
+                if(shutdownStart && shutdownEnd) {
+                    return [{ start: shutdownStart, end: shutdownEnd }];
+                }
+                return [];
+            }, [shutdownStart, shutdownEnd]);
+
+            // Derived data for display
+            const sortedSelectedDates = Array.from(selectedDates).sort();
+
+            return (
+                <div className="min-h-screen flex flex-col xl:flex-row max-w-[1600px] mx-auto p-4 md:p-6 gap-6">
+                    
+                    {/* MAIN CONTENT AREA */}
+                    <div className="flex-1 flex flex-col gap-6">
+                        
+                        {/* Header */}
+                        <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Icons.Calendar /> Annual Leave Planner
+                                </h1>
+                                <p className="text-slate-500 text-sm mt-1">
+                                    Planning for: <span className="font-semibold text-blue-600">1 Apr {startYear} — 31 Mar {startYear + 1}</span>
+                                </p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                {/* Year Selector */}
+                                <div className="flex items-center bg-slate-100 rounded-lg p-1">
+                                    <button onClick={() => setStartYear(y => y - 1)} className="p-2 hover:bg-white rounded-md transition-colors text-slate-600"><Icons.ChevronLeft /></button>
+                                    <span className="font-bold text-slate-700 px-3">{startYear} - {String(startYear+1).slice(-2)}</span>
+                                    <button onClick={() => setStartYear(y => y + 1)} className="p-2 hover:bg-white rounded-md transition-colors text-slate-600"><Icons.ChevronRight /></button>
+                                </div>
+                                
+                                <button 
+                                    onClick={() => setShowSettings(!showSettings)}
+                                    className={`p-2.5 rounded-lg border transition-colors ${showSettings ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    title="Settings"
+                                >
+                                    <Icons.Settings />
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Settings Panel (Collapsible) */}
+                        {showSettings && (
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 animate-fade-in">
+                                <h2 className="text-lg font-bold text-slate-800 mb-4">Configuration</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-medium text-slate-600">Employee Name</label>
+                                        <input 
+                                            type="text" 
+                                            value={userName} 
+                                            onChange={(e) => setUserName(e.target.value)}
+                                            className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-medium text-slate-600">Total Allowance (Days)</label>
+                                        <input 
+                                            type="number" 
+                                            value={allowance} 
+                                            onChange={(e) => setAllowance(parseInt(e.target.value) || 0)}
+                                            className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-medium text-slate-600">Bank Holidays</label>
+                                        <label className="flex items-center gap-2 cursor-pointer mt-2">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={bankHolidaysEnabled} 
+                                                onChange={(e) => setBankHolidaysEnabled(e.target.checked)}
+                                                className="w-5 h-5 accent-blue-600 rounded"
+                                            />
+                                            <span className="text-slate-700">Show & Exclude from Allowance</span>
+                                        </label>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-medium text-slate-600">Company Shutdown (Optional)</label>
+                                        <div className="flex items-center gap-2">
+                                            <input type="date" value={shutdownStart} onChange={e => setShutdownStart(e.target.value)} className="w-full text-xs border rounded px-2 py-2" />
+                                            <span className="text-slate-400">-</span>
+                                            <input type="date" value={shutdownEnd} onChange={e => setShutdownEnd(e.target.value)} className="w-full text-xs border rounded px-2 py-2" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {calendarMonths.map((m, idx) => (
+                                <CalendarMonth 
+                                    key={`${m.year}-${m.month}`}
+                                    monthIndex={m.month}
+                                    year={m.year}
+                                    selectedDates={selectedDates}
+                                    onDateClick={handleDateClick}
+                                    showBankHolidays={bankHolidaysEnabled}
+                                    shutdownRanges={shutdownRanges}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* SIDEBAR / SUMMARY */}
+                    <div className="xl:w-80 w-full shrink-0 flex flex-col gap-6">
+                        
+                        {/* Stats Card */}
+                        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 sticky top-6">
+                            <h2 className="font-bold text-lg text-slate-800 mb-4">Summary</h2>
+                            
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-slate-500">Allowance</span>
+                                <span className="font-bold text-slate-800">{allowance}</span>
+                            </div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-slate-500">Booked</span>
+                                <span className={`font-bold ${used > allowance ? 'text-red-500' : 'text-blue-600'}`}>{used}</span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-2.5 mb-4 overflow-hidden">
+                                <div 
+                                    className={`h-2.5 rounded-full ${used > allowance ? 'bg-red-500' : 'bg-blue-600'}`} 
+                                    style={{ width: `${Math.min((used / allowance) * 100, 100)}%` }}
+                                ></div>
+                            </div>
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                                <span className="text-slate-500 font-medium">Remaining</span>
+                                <span className="text-2xl font-bold text-slate-800">{remaining}</span>
+                            </div>
+                            {remaining < 0 && (
+                                <div className="mt-3 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2">
+                                    <Icons.Alert />
+                                    Over allowance by {Math.abs(remaining)} days
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <ExportPanel 
+                                selectedDates={selectedDates} 
+                                allowance={allowance} 
+                                userName={userName}
+                                leaveYear={`${startYear}-${startYear+1}`}
+                            />
+                            
+                            <button 
+                                onClick={clearAll}
+                                className="w-full mt-3 text-slate-400 hover:text-slate-600 text-xs text-center hover:underline"
+                            >
+                                Clear all dates
+                            </button>
+                        </div>
+
+                        {/* Selected Dates List */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden max-h-[500px]">
+                            <div className="p-4 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center">
+                                <span>Selected Dates</span>
+                                <span className="bg-slate-200 text-slate-600 text-xs py-0.5 px-2 rounded-full">{selectedDates.size}</span>
+                            </div>
+                            <div className="overflow-y-auto custom-scroll p-2 flex-1">
+                                {sortedSelectedDates.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 text-sm">
+                                        No dates selected. <br/>Click on the calendar to start.
+                                    </div>
+                                ) : (
+                                    <ul className="space-y-1">
+                                        {sortedSelectedDates.map(date => (
+                                            <li key={date} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group text-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                    <span className="text-slate-700">{niceDateFormat(date)}</span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => removeDate(date)}
+                                                    className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                    title="Remove date"
+                                                >
+                                                    <Icons.Trash />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 text-xs text-slate-500 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                                <span>Selected Leave</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded"></div>
+                                <span>Bank Holiday</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-slate-100 border border-slate-100 rounded"></div>
+                                <span>Weekend</span>
+                            </div>
+                             <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-purple-50 border border-purple-200 rounded"></div>
+                                <span>Company Shutdown</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
