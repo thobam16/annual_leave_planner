@@ -61,13 +61,13 @@
             ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
             Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
             Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
-            Sun: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         };
 
         // --- UTILS & DATA ---
 
         // Known UK Bank Holidays (2024-2027)
-        // Format: YYYY-MM-DD
         const UK_BANK_HOLIDAYS = {
             "2024-01-01": "New Year's Day",
             "2024-03-29": "Good Friday",
@@ -98,35 +98,24 @@
         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-        // Helper to check weekends
         const isWeekend = (year, month, day) => {
             const dt = new Date(year, month, day);
             const d = dt.getDay();
             return d === 0 || d === 6; // Sun or Sat
         };
 
-        // Format Date string YYYY-MM-DD
         const toDateString = (year, month, day) => {
             return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         };
 
         const niceDateFormat = (dateStr) => {
             const d = new Date(dateStr);
-            return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
         };
 
         // --- COMPONENTS ---
 
-        const BankHolidayBadge = ({ name }) => (
-            <div className="group relative inline-block ml-1">
-                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block cursor-help"></span>
-                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-max bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                    {name}
-                </span>
-            </div>
-        );
-
-        const CalendarDay = ({ day, month, year, selected, bankHolidayName, isShutdown, onClick }) => {
+        const CalendarDay = ({ day, month, year, selected, bankHolidayName, isSabbatical, onClick }) => {
             if (!day) return <div className="h-10 sm:h-12 bg-transparent"></div>;
 
             const isWknd = isWeekend(year, month, day);
@@ -149,7 +138,7 @@
                 borderClass = "border border-amber-200";
             }
 
-            if (isShutdown) {
+            if (isSabbatical) {
                 bgClass = "bg-purple-50";
                 textClass = "text-purple-700 font-medium";
                 borderClass = "border border-purple-200";
@@ -168,16 +157,16 @@
                         h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-200 relative
                         ${bgClass} ${textClass} ${borderClass} ${cursorClass}
                     `}
-                    title={isBankHol ? bankHolidayName : (isShutdown ? "Shutdown Period" : "")}
+                    title={isBankHol ? bankHolidayName : (isSabbatical ? "Sabbatical Period" : "")}
                 >
                     <span>{day}</span>
                     {isBankHol && !selected && <div className="w-1 h-1 rounded-full bg-amber-500 mt-1"></div>}
-                    {isShutdown && !selected && <div className="w-1 h-1 rounded-full bg-purple-500 mt-1"></div>}
+                    {isSabbatical && !selected && <div className="w-1 h-1 rounded-full bg-purple-500 mt-1"></div>}
                 </div>
             );
         };
 
-        const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, shutdownRanges }) => {
+        const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, sabbaticals }) => {
             const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
             const firstDayIndex = new Date(year, monthIndex, 1).getDay(); // 0 = Sun
 
@@ -207,8 +196,8 @@
                             const isSelected = selectedDates.has(dateStr);
                             const bhName = showBankHolidays ? UK_BANK_HOLIDAYS[dateStr] : null;
 
-                            // Check shutdown
-                            const isShutdown = shutdownRanges.some(range => {
+                            // Check Sabbatical
+                            const isSabbatical = sabbaticals.some(range => {
                                 return dateStr >= range.start && dateStr <= range.end;
                             });
 
@@ -220,8 +209,8 @@
                                     year={year}
                                     selected={isSelected}
                                     bankHolidayName={bhName}
-                                    isShutdown={isShutdown}
-                                    onClick={() => onDateClick(dateStr, bhName, isShutdown)}
+                                    isSabbatical={isSabbatical}
+                                    onClick={() => onDateClick(dateStr, bhName, isSabbatical)}
                                 />
                             );
                         })}
@@ -242,7 +231,7 @@
 
                 const addRange = (range) => {
                     const start = range[0].replace(/-/g, '');
-                    // End date in ICS is exclusive, so we add 1 day to the last date
+                    // End date in ICS is exclusive
                     const endDateObj = new Date(range[range.length - 1]);
                     endDateObj.setDate(endDateObj.getDate() + 1);
                     const end = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
@@ -275,7 +264,7 @@
                     icsContent += `DTSTART;VALUE=DATE:${evt.start}\r\n`;
                     icsContent += `DTEND;VALUE=DATE:${evt.end}\r\n`;
                     icsContent += "SUMMARY:Annual Leave\r\n";
-                    icsContent += "TRANSP:OPAQUE\r\n"; // Shows as Busy
+                    icsContent += "TRANSP:OPAQUE\r\n";
                     icsContent += "END:VEVENT\r\n";
                 });
                 icsContent += "END:VCALENDAR";
@@ -312,7 +301,6 @@
                 let y = 60;
                 let x = 20;
                 
-                // Group by month for nicer display
                 const byMonth = {};
                 dates.forEach(d => {
                     const m = d.substring(0, 7); // YYYY-MM
@@ -339,7 +327,9 @@
                             doc.addPage();
                             y = 20;
                         }
-                        doc.text(`• ${niceDateFormat(dateStr)}`, x + 5, y);
+                        const d = new Date(dateStr);
+                        const fmt = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                        doc.text(`• ${fmt}`, x + 5, y);
                         y += 5;
                     });
                     y += 5;
@@ -365,14 +355,17 @@
             const [allowance, setAllowance] = useState(30);
             const [startYear, setStartYear] = useState(() => {
                 const now = new Date();
-                // If we are in Jan/Feb/Mar, the leave year started previous year
                 return now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
             });
             const [selectedDates, setSelectedDates] = useState(new Set());
             const [bankHolidaysEnabled, setBankHolidaysEnabled] = useState(true);
             const [userName, setUserName] = useState("My Leave");
-            const [shutdownStart, setShutdownStart] = useState("");
-            const [shutdownEnd, setShutdownEnd] = useState("");
+            
+            // Sabbatical State (Array of {id, start, end})
+            const [sabbaticals, setSabbaticals] = useState([]);
+            const [sabStart, setSabStart] = useState("");
+            const [sabEnd, setSabEnd] = useState("");
+
             const [showSettings, setShowSettings] = useState(false);
 
             // Load from LocalStorage
@@ -385,9 +378,11 @@
                     setSelectedDates(new Set(data.selectedDates || []));
                     setBankHolidaysEnabled(data.bankHolidaysEnabled ?? true);
                     setUserName(data.userName || "My Leave");
-                    if(data.shutdown) {
-                        setShutdownStart(data.shutdown.start);
-                        setShutdownEnd(data.shutdown.end);
+                    // Migration: Check for old shutdown format vs new array
+                    if(Array.isArray(data.sabbaticals)) {
+                        setSabbaticals(data.sabbaticals);
+                    } else if (data.shutdown && data.shutdown.start) {
+                         setSabbaticals([{ id: Date.now(), start: data.shutdown.start, end: data.shutdown.end }]);
                     }
                 }
             }, []);
@@ -400,44 +395,34 @@
                     selectedDates: Array.from(selectedDates),
                     bankHolidaysEnabled,
                     userName,
-                    shutdown: { start: shutdownStart, end: shutdownEnd }
+                    sabbaticals
                 }));
-            }, [allowance, startYear, selectedDates, bankHolidaysEnabled, userName, shutdownStart, shutdownEnd]);
+            }, [allowance, startYear, selectedDates, bankHolidaysEnabled, userName, sabbaticals]);
 
             const used = selectedDates.size;
             const remaining = allowance - used;
 
-            // Generate the 12 months from April YYYY to March YYYY+1
+            // Generate Calendar Months
             const calendarMonths = useMemo(() => {
                 const months = [];
-                // April (3) to December (11) of startYear
-                for (let m = 3; m <= 11; m++) {
-                    months.push({ month: m, year: startYear });
-                }
-                // January (0) to March (2) of startYear + 1
-                for (let m = 0; m <= 2; m++) {
-                    months.push({ month: m, year: startYear + 1 });
-                }
+                for (let m = 3; m <= 11; m++) months.push({ month: m, year: startYear });
+                for (let m = 0; m <= 2; m++) months.push({ month: m, year: startYear + 1 });
                 return months;
             }, [startYear]);
 
             // Handlers
-            const handleDateClick = (dateStr, isBankHoliday, isShutdown) => {
+            const handleDateClick = (dateStr, isBankHoliday, isSabbatical) => {
                 const newSet = new Set(selectedDates);
                 
                 if (newSet.has(dateStr)) {
                     newSet.delete(dateStr);
                 } else {
                     if (isBankHoliday && bankHolidaysEnabled) {
-                        // Optional: Allow selecting BH if user really wants to burn a day?
-                        // For this planner, let's assume BH is free and shouldn't be selected as 'leave' usually
-                        // But some companies deduct BH. Let's block it for now but maybe allow via override if we had more settings.
                         alert("That's a Bank Holiday! Usually you don't need to book this.");
                         return; 
                     }
-                    if (isShutdown) {
-                         // Similar logic for shutdowns
-                         if(!confirm("This is within a Company Shutdown period. Do you still want to book this as personal leave?")) return;
+                    if (isSabbatical) {
+                         if(!confirm("This is within a Sabbatical period. Do you still want to book this as personal leave?")) return;
                     }
                     if (used >= allowance) {
                         alert("You have reached your leave allowance limit!");
@@ -448,9 +433,9 @@
                 setSelectedDates(newSet);
             };
 
-            const removeDate = (dateStr) => {
+            const removeRange = (datesToRemove) => {
                 const newSet = new Set(selectedDates);
-                newSet.delete(dateStr);
+                datesToRemove.forEach(d => newSet.delete(d));
                 setSelectedDates(newSet);
             };
 
@@ -460,15 +445,43 @@
                 }
             };
 
-            const shutdownRanges = useMemo(() => {
-                if(shutdownStart && shutdownEnd) {
-                    return [{ start: shutdownStart, end: shutdownEnd }];
-                }
-                return [];
-            }, [shutdownStart, shutdownEnd]);
+            const addSabbatical = () => {
+                if(!sabStart || !sabEnd) return alert("Please select start and end dates");
+                if(sabStart > sabEnd) return alert("Start date must be before end date");
+                
+                setSabbaticals([...sabbaticals, { id: Date.now(), start: sabStart, end: sabEnd }]);
+                setSabStart("");
+                setSabEnd("");
+            };
 
-            // Derived data for display
-            const sortedSelectedDates = Array.from(selectedDates).sort();
+            const removeSabbatical = (id) => {
+                setSabbaticals(sabbaticals.filter(s => s.id !== id));
+            };
+
+            // Group Dates for Display
+            const dateGroups = useMemo(() => {
+                const dates = Array.from(selectedDates).sort();
+                if (dates.length === 0) return [];
+                
+                const groups = [];
+                let currentGroup = [dates[0]];
+
+                for (let i = 1; i < dates.length; i++) {
+                    const date = new Date(dates[i]);
+                    const prevDate = new Date(currentGroup[currentGroup.length - 1]);
+                    const diffTime = Math.abs(date - prevDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+                    if (diffDays === 1) {
+                        currentGroup.push(dates[i]);
+                    } else {
+                        groups.push(currentGroup);
+                        currentGroup = [dates[i]];
+                    }
+                }
+                groups.push(currentGroup);
+                return groups;
+            }, [selectedDates]);
 
             return (
                 <div className="min-h-screen flex flex-col xl:flex-row max-w-[1600px] mx-auto p-4 md:p-6 gap-6">
@@ -540,12 +553,39 @@
                                             <span className="text-slate-700">Show & Exclude from Allowance</span>
                                         </label>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-medium text-slate-600">Company Shutdown (Optional)</label>
-                                        <div className="flex items-center gap-2">
-                                            <input type="date" value={shutdownStart} onChange={e => setShutdownStart(e.target.value)} className="w-full text-xs border rounded px-2 py-2" />
+                                    
+                                    {/* Sabbaticals Section */}
+                                    <div className="flex flex-col gap-2 lg:col-span-2">
+                                        <label className="text-sm font-medium text-slate-600">Sabbatical / Shutdown Periods</label>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <input 
+                                                type="date" 
+                                                value={sabStart} 
+                                                onChange={e => setSabStart(e.target.value)} 
+                                                className="text-xs border rounded px-2 py-2 flex-1 min-w-[120px]" 
+                                            />
                                             <span className="text-slate-400">-</span>
-                                            <input type="date" value={shutdownEnd} onChange={e => setShutdownEnd(e.target.value)} className="w-full text-xs border rounded px-2 py-2" />
+                                            <input 
+                                                type="date" 
+                                                value={sabEnd} 
+                                                onChange={e => setSabEnd(e.target.value)} 
+                                                className="text-xs border rounded px-2 py-2 flex-1 min-w-[120px]" 
+                                            />
+                                            <button 
+                                                onClick={addSabbatical}
+                                                className="bg-blue-600 text-white rounded p-2 hover:bg-blue-700"
+                                            >
+                                                <Icons.Plus />
+                                            </button>
+                                        </div>
+                                        {/* List of Sabbaticals */}
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {sabbaticals.map(s => (
+                                                <div key={s.id} className="bg-purple-50 border border-purple-200 text-purple-700 text-xs px-2 py-1 rounded flex items-center gap-2">
+                                                    <span>{s.start} to {s.end}</span>
+                                                    <button onClick={() => removeSabbatical(s.id)} className="hover:text-purple-900"><Icons.X /></button>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
@@ -562,7 +602,7 @@
                                     selectedDates={selectedDates}
                                     onDateClick={handleDateClick}
                                     showBankHolidays={bankHolidaysEnabled}
-                                    shutdownRanges={shutdownRanges}
+                                    sabbaticals={sabbaticals}
                                 />
                             ))}
                         </div>
@@ -623,22 +663,27 @@
                                 <span className="bg-slate-200 text-slate-600 text-xs py-0.5 px-2 rounded-full">{selectedDates.size}</span>
                             </div>
                             <div className="overflow-y-auto custom-scroll p-2 flex-1">
-                                {sortedSelectedDates.length === 0 ? (
+                                {dateGroups.length === 0 ? (
                                     <div className="text-center py-8 text-slate-400 text-sm">
                                         No dates selected. <br/>Click on the calendar to start.
                                     </div>
                                 ) : (
                                     <ul className="space-y-1">
-                                        {sortedSelectedDates.map(date => (
-                                            <li key={date} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group text-sm">
+                                        {dateGroups.map((group, idx) => (
+                                            <li key={idx} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group text-sm">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                                                    <span className="text-slate-700">{niceDateFormat(date)}</span>
+                                                    <span className="text-slate-700">
+                                                        {group.length === 1 
+                                                            ? niceDateFormat(group[0]) 
+                                                            : `${niceDateFormat(group[0])} — ${niceDateFormat(group[group.length - 1])}`
+                                                        }
+                                                    </span>
                                                 </div>
                                                 <button 
-                                                    onClick={() => removeDate(date)}
+                                                    onClick={() => removeRange(group)}
                                                     className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                    title="Remove date"
+                                                    title="Remove period"
                                                 >
                                                     <Icons.Trash />
                                                 </button>
@@ -665,7 +710,7 @@
                             </div>
                              <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-purple-50 border border-purple-200 rounded"></div>
-                                <span>Company Shutdown</span>
+                                <span>Sabbatical / Shutdown</span>
                             </div>
                         </div>
 
