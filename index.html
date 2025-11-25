@@ -94,11 +94,6 @@
             return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         };
 
-        const niceDateFormat = (dateStr) => {
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        };
-
         const niceDateFormatFull = (dateStr) => {
              const d = new Date(dateStr);
              return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -163,7 +158,7 @@
             );
         };
 
-        const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, sabbaticals }) => {
+        const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, showDoc, sabbaticals }) => {
             const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
             const firstDayIndex = new Date(year, monthIndex, 1).getDay(); // 0 = Sun
             const days = [];
@@ -185,7 +180,7 @@
                             const dateStr = toDateString(year, monthIndex, day);
                             const isSelected = selectedDates.has(dateStr);
                             const bhName = showBankHolidays ? UK_BANK_HOLIDAYS[dateStr] : null;
-                            const docName = DOC_HOLIDAYS[dateStr];
+                            const docName = showDoc ? DOC_HOLIDAYS[dateStr] : null;
                             const isSabbatical = sabbaticals.some(range => dateStr >= range.start && dateStr <= range.end);
 
                             return (
@@ -212,7 +207,6 @@
                 const dates = Array.from(selectedDates).sort();
                 if (dates.length === 0) return alert("No dates selected");
                 
-                // Use dateGroups from props instead of recalculating, to allow attaching labels
                 let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//AnnualLeavePlanner//EN\r\n";
                 
                 dateGroups.forEach(group => {
@@ -260,7 +254,6 @@
                 doc.setTextColor(0);
                 let y = 60, x = 20;
                 
-                // Print summarized groups instead of individual dates
                 doc.setFont(undefined, 'bold');
                 doc.text("Planned Periods:", x, y);
                 y += 8;
@@ -297,8 +290,9 @@
                 return now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
             });
             const [selectedDates, setSelectedDates] = useState(new Set());
-            const [groupLabels, setGroupLabels] = useState({}); // New state for labels
+            const [groupLabels, setGroupLabels] = useState({});
             const [bankHolidaysEnabled, setBankHolidaysEnabled] = useState(true);
+            const [docEnabled, setDocEnabled] = useState(true);
             const [userName, setUserName] = useState("My Leave");
             const [sabbaticals, setSabbaticals] = useState([]);
             const [sabStart, setSabStart] = useState("");
@@ -314,6 +308,7 @@
                     setSelectedDates(new Set(data.selectedDates || []));
                     setGroupLabels(data.groupLabels || {});
                     setBankHolidaysEnabled(data.bankHolidaysEnabled ?? true);
+                    setDocEnabled(data.docEnabled ?? true);
                     setUserName(data.userName || "My Leave");
                     if(Array.isArray(data.sabbaticals)) {
                         setSabbaticals(data.sabbaticals);
@@ -325,9 +320,9 @@
 
             useEffect(() => {
                 localStorage.setItem('annual-leave-data', JSON.stringify({
-                    allowance, startYear, selectedDates: Array.from(selectedDates), groupLabels, bankHolidaysEnabled, userName, sabbaticals
+                    allowance, startYear, selectedDates: Array.from(selectedDates), groupLabels, bankHolidaysEnabled, docEnabled, userName, sabbaticals
                 }));
-            }, [allowance, startYear, selectedDates, groupLabels, bankHolidaysEnabled, userName, sabbaticals]);
+            }, [allowance, startYear, selectedDates, groupLabels, bankHolidaysEnabled, docEnabled, userName, sabbaticals]);
 
             const used = selectedDates.size;
             const remaining = allowance - used;
@@ -345,7 +340,7 @@
                 const dayOfWeek = d.getDay();
                 if (dayOfWeek === 0 || dayOfWeek === 6) return true; // Weekend
                 if (bankHolidaysEnabled && UK_BANK_HOLIDAYS[dateStr]) return true;
-                if (DOC_HOLIDAYS[dateStr]) return true;
+                if (docEnabled && DOC_HOLIDAYS[dateStr]) return true;
                 if (sabbaticals.some(s => dateStr >= s.start && dateStr <= s.end)) return true;
                 return false;
             };
@@ -388,7 +383,7 @@
                 }
                 groups.push(currentGroup);
                 return groups;
-            }, [selectedDates, bankHolidaysEnabled, sabbaticals]);
+            }, [selectedDates, bankHolidaysEnabled, docEnabled, sabbaticals]);
 
             // Helper to get display string for a group
             const getGroupDisplayString = (group) => {
@@ -405,7 +400,7 @@
                     // We only extend for Bank Holidays, DOCs, or Sabbaticals. 
                     const isSpecialHoliday = 
                         (bankHolidaysEnabled && UK_BANK_HOLIDAYS[checkIso]) || 
-                        DOC_HOLIDAYS[checkIso] ||
+                        (docEnabled && DOC_HOLIDAYS[checkIso]) ||
                         sabbaticals.some(s => checkIso >= s.start && checkIso <= s.end);
                         
                     if(isSpecialHoliday) {
@@ -485,10 +480,14 @@
                                         <input type="number" value={allowance} onChange={(e) => setAllowance(parseInt(e.target.value) || 0)} className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"/>
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-medium text-slate-600">Bank Holidays</label>
-                                        <label className="flex items-center gap-2 cursor-pointer mt-2">
+                                        <label className="text-sm font-medium text-slate-600">Special Days</label>
+                                        <label className="flex items-center gap-2 cursor-pointer mt-1">
                                             <input type="checkbox" checked={bankHolidaysEnabled} onChange={(e) => setBankHolidaysEnabled(e.target.checked)} className="w-5 h-5 accent-blue-600 rounded"/>
-                                            <span className="text-slate-700">Show & Exclude</span>
+                                            <span className="text-slate-700 text-sm">Bank Holidays</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" checked={docEnabled} onChange={(e) => setDocEnabled(e.target.checked)} className="w-5 h-5 accent-blue-600 rounded"/>
+                                            <span className="text-slate-700 text-sm">Day of Care (DOC)</span>
                                         </label>
                                     </div>
                                     <div className="flex flex-col gap-2 lg:col-span-2">
@@ -521,6 +520,7 @@
                                     selectedDates={selectedDates}
                                     onDateClick={handleDateClick}
                                     showBankHolidays={bankHolidaysEnabled}
+                                    showDoc={docEnabled}
                                     sabbaticals={sabbaticals}
                                 />
                             ))}
