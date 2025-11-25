@@ -66,44 +66,13 @@
         };
 
         // --- UTILS & DATA ---
-
-        // Known UK Bank Holidays (2024-2027)
         const UK_BANK_HOLIDAYS = {
-            "2024-01-01": "New Year's Day",
-            "2024-03-29": "Good Friday",
-            "2024-04-01": "Easter Monday",
-            "2024-05-06": "Early May Bank Holiday",
-            "2024-05-27": "Spring Bank Holiday",
-            "2024-08-26": "Summer Bank Holiday",
-            "2024-12-25": "Christmas Day",
-            "2024-12-26": "Boxing Day",
-            "2025-01-01": "New Year's Day",
-            "2025-04-18": "Good Friday",
-            "2025-04-21": "Easter Monday",
-            "2025-05-05": "Early May Bank Holiday",
-            "2025-05-26": "Spring Bank Holiday",
-            "2025-08-25": "Summer Bank Holiday",
-            "2025-12-25": "Christmas Day",
-            "2025-12-26": "Boxing Day",
-            "2026-01-01": "New Year's Day",
-            "2026-04-03": "Good Friday",
-            "2026-04-06": "Easter Monday",
-            "2026-05-04": "Early May Bank Holiday",
-            "2026-05-25": "Spring Bank Holiday",
-            "2026-08-31": "Summer Bank Holiday",
-            "2026-12-25": "Christmas Day",
-            "2026-12-28": "Boxing Day (Substitute)",
-            "2027-01-01": "New Year's Day",
-            "2027-03-26": "Good Friday",
-            "2027-03-29": "Easter Monday",
-            "2027-05-03": "Early May Bank Holiday",
-            "2027-05-31": "Spring Bank Holiday",
-            "2027-08-30": "Summer Bank Holiday",
-            "2027-12-27": "Christmas Day (Substitute)",
-            "2027-12-28": "Boxing Day (Substitute)"
+            "2024-01-01": "New Year's Day", "2024-03-29": "Good Friday", "2024-04-01": "Easter Monday", "2024-05-06": "Early May Bank Holiday", "2024-05-27": "Spring Bank Holiday", "2024-08-26": "Summer Bank Holiday", "2024-12-25": "Christmas Day", "2024-12-26": "Boxing Day",
+            "2025-01-01": "New Year's Day", "2025-04-18": "Good Friday", "2025-04-21": "Easter Monday", "2025-05-05": "Early May Bank Holiday", "2025-05-26": "Spring Bank Holiday", "2025-08-25": "Summer Bank Holiday", "2025-12-25": "Christmas Day", "2025-12-26": "Boxing Day",
+            "2026-01-01": "New Year's Day", "2026-04-03": "Good Friday", "2026-04-06": "Easter Monday", "2026-05-04": "Early May Bank Holiday", "2026-05-25": "Spring Bank Holiday", "2026-08-31": "Summer Bank Holiday", "2026-12-25": "Christmas Day", "2026-12-28": "Boxing Day (Substitute)",
+            "2027-01-01": "New Year's Day", "2027-03-26": "Good Friday", "2027-03-29": "Easter Monday", "2027-05-03": "Early May Bank Holiday", "2027-05-31": "Spring Bank Holiday", "2027-08-30": "Summer Bank Holiday", "2027-12-27": "Christmas Day (Substitute)", "2027-12-28": "Boxing Day (Substitute)"
         };
 
-        // Day of Care Holidays (as updated)
         const DOC_HOLIDAYS = {
             "2025-11-21": "November DOC 2025",
             "2026-02-13": "February DOC 2026 (predicted)",
@@ -117,7 +86,7 @@
         const isWeekend = (year, month, day) => {
             const dt = new Date(year, month, day);
             const d = dt.getDay();
-            return d === 0 || d === 6; // Sun or Sat
+            return d === 0 || d === 6; 
         };
 
         const toDateString = (year, month, day) => {
@@ -129,8 +98,12 @@
             return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
         };
 
-        // --- COMPONENTS ---
+        const niceDateFormatFull = (dateStr) => {
+             const d = new Date(dateStr);
+             return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        };
 
+        // --- COMPONENTS ---
         const CalendarDay = ({ day, month, year, selected, bankHolidayName, docHolidayName, isSabbatical, onClick }) => {
             if (!day) return <div className="h-10 sm:h-12 bg-transparent"></div>;
 
@@ -139,7 +112,6 @@
             const isDocHol = !!docHolidayName;
             const isDocPredicted = isDocHol && docHolidayName.toLowerCase().includes('(predicted)');
             
-            // Styles
             let bgClass = "bg-white hover:bg-slate-50";
             let textClass = "text-slate-700";
             let borderClass = "border border-slate-100";
@@ -149,13 +121,11 @@
                 bgClass = "bg-slate-100";
                 textClass = "text-slate-400";
             }
-            
             if (isBankHol) {
                 bgClass = "bg-amber-50";
                 textClass = "text-amber-700 font-medium";
                 borderClass = "border border-amber-200";
             }
-
             if (isDocHol) {
                 if (isDocPredicted) {
                     bgClass = "bg-cyan-50";
@@ -167,13 +137,11 @@
                     borderClass = "border border-emerald-200";
                 }
             }
-
             if (isSabbatical) {
                 bgClass = "bg-purple-50";
                 textClass = "text-purple-700 font-medium";
                 borderClass = "border border-purple-200";
             }
-
             if (selected) {
                 bgClass = "bg-blue-600 shadow-md";
                 textClass = "text-white font-semibold";
@@ -183,10 +151,7 @@
             return (
                 <div 
                     onClick={() => onClick(day)}
-                    className={`
-                        h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-200 relative
-                        ${bgClass} ${textClass} ${borderClass} ${cursorClass}
-                    `}
+                    className={`h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-200 relative ${bgClass} ${textClass} ${borderClass} ${cursorClass}`}
                     title={isBankHol ? bankHolidayName : (isDocHol ? docHolidayName : (isSabbatical ? "Sabbatical Period" : ""))}
                 >
                     <span>{day}</span>
@@ -200,16 +165,9 @@
         const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, sabbaticals }) => {
             const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
             const firstDayIndex = new Date(year, monthIndex, 1).getDay(); // 0 = Sun
-
             const days = [];
-            // Empty slots for start of month
-            for (let i = 0; i < firstDayIndex; i++) {
-                days.push(null);
-            }
-            // Actual days
-            for (let i = 1; i <= daysInMonth; i++) {
-                days.push(i);
-            }
+            for (let i = 0; i < firstDayIndex; i++) days.push(null);
+            for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
             return (
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm break-inside-avoid">
@@ -227,11 +185,7 @@
                             const isSelected = selectedDates.has(dateStr);
                             const bhName = showBankHolidays ? UK_BANK_HOLIDAYS[dateStr] : null;
                             const docName = DOC_HOLIDAYS[dateStr];
-
-                            // Check Sabbatical
-                            const isSabbatical = sabbaticals.some(range => {
-                                return dateStr >= range.start && dateStr <= range.end;
-                            });
+                            const isSabbatical = sabbaticals.some(range => dateStr >= range.start && dateStr <= range.end);
 
                             return (
                                 <CalendarDay 
@@ -253,26 +207,21 @@
         };
 
         const ExportPanel = ({ selectedDates, allowance, userName, leaveYear }) => {
-            
             const generateICS = () => {
                 const dates = Array.from(selectedDates).sort();
                 if (dates.length === 0) return alert("No dates selected");
-
-                // Group consecutive dates
                 const events = [];
                 let currentRange = null;
 
                 const addRange = (range) => {
                     const start = range[0].replace(/-/g, '');
-                    // End date in ICS is exclusive
                     const endDateObj = new Date(range[range.length - 1]);
                     endDateObj.setDate(endDateObj.getDate() + 1);
                     const end = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
-                    
                     events.push({ start, end });
                 };
 
-                dates.forEach((dateStr, idx) => {
+                dates.forEach((dateStr) => {
                     const currentDate = new Date(dateStr);
                     if (!currentRange) {
                         currentRange = [dateStr];
@@ -280,7 +229,6 @@
                         const lastDate = new Date(currentRange[currentRange.length - 1]);
                         const diffTime = Math.abs(currentDate - lastDate);
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                        
                         if (diffDays === 1) {
                             currentRange.push(dateStr);
                         } else {
@@ -315,51 +263,34 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 const dates = Array.from(selectedDates).sort();
-
                 doc.setFontSize(20);
                 doc.text("Annual Leave Summary", 20, 20);
-                
                 doc.setFontSize(12);
                 doc.setTextColor(100);
                 doc.text(`Name: ${userName || "N/A"}`, 20, 30);
                 doc.text(`Leave Year: ${leaveYear}`, 20, 36);
                 doc.text(`Allowance Used: ${dates.length} / ${allowance} days`, 20, 42);
-
                 doc.setLineWidth(0.5);
                 doc.line(20, 48, 190, 48);
-
                 doc.setFontSize(10);
                 doc.setTextColor(0);
-                
-                let y = 60;
-                let x = 20;
-                
+                let y = 60, x = 20;
                 const byMonth = {};
                 dates.forEach(d => {
-                    const m = d.substring(0, 7); // YYYY-MM
+                    const m = d.substring(0, 7);
                     if(!byMonth[m]) byMonth[m] = [];
                     byMonth[m].push(d);
                 });
-
                 Object.keys(byMonth).forEach(monthKey => {
-                    if (y > 270) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                    
+                    if (y > 270) { doc.addPage(); y = 20; }
                     const [yr, mo] = monthKey.split('-');
                     const monthName = MONTH_NAMES[parseInt(mo) - 1];
-                    
                     doc.setFont(undefined, 'bold');
                     doc.text(`${monthName} ${yr}`, x, y);
                     y += 6;
                     doc.setFont(undefined, 'normal');
-                    
                     byMonth[monthKey].forEach(dateStr => {
-                         if (y > 280) {
-                            doc.addPage();
-                            y = 20;
-                        }
+                         if (y > 280) { doc.addPage(); y = 20; }
                         const d = new Date(dateStr);
                         const fmt = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
                         doc.text(`• ${fmt}`, x + 5, y);
@@ -367,7 +298,6 @@
                     });
                     y += 5;
                 });
-
                 doc.save(`leave_report_${leaveYear}.pdf`);
             };
 
@@ -384,7 +314,6 @@
         };
 
         const App = () => {
-            // State
             const [allowance, setAllowance] = useState(30);
             const [startYear, setStartYear] = useState(() => {
                 const now = new Date();
@@ -393,15 +322,11 @@
             const [selectedDates, setSelectedDates] = useState(new Set());
             const [bankHolidaysEnabled, setBankHolidaysEnabled] = useState(true);
             const [userName, setUserName] = useState("My Leave");
-            
-            // Sabbatical State (Array of {id, start, end})
             const [sabbaticals, setSabbaticals] = useState([]);
             const [sabStart, setSabStart] = useState("");
             const [sabEnd, setSabEnd] = useState("");
-
             const [showSettings, setShowSettings] = useState(false);
 
-            // Load from LocalStorage
             useEffect(() => {
                 const saved = localStorage.getItem('annual-leave-data');
                 if (saved) {
@@ -411,7 +336,6 @@
                     setSelectedDates(new Set(data.selectedDates || []));
                     setBankHolidaysEnabled(data.bankHolidaysEnabled ?? true);
                     setUserName(data.userName || "My Leave");
-                    // Migration: Check for old shutdown format vs new array
                     if(Array.isArray(data.sabbaticals)) {
                         setSabbaticals(data.sabbaticals);
                     } else if (data.shutdown && data.shutdown.start) {
@@ -420,22 +344,15 @@
                 }
             }, []);
 
-            // Save to LocalStorage
             useEffect(() => {
                 localStorage.setItem('annual-leave-data', JSON.stringify({
-                    allowance,
-                    startYear,
-                    selectedDates: Array.from(selectedDates),
-                    bankHolidaysEnabled,
-                    userName,
-                    sabbaticals
+                    allowance, startYear, selectedDates: Array.from(selectedDates), bankHolidaysEnabled, userName, sabbaticals
                 }));
             }, [allowance, startYear, selectedDates, bankHolidaysEnabled, userName, sabbaticals]);
 
             const used = selectedDates.size;
             const remaining = allowance - used;
 
-            // Generate Calendar Months
             const calendarMonths = useMemo(() => {
                 const months = [];
                 for (let m = 3; m <= 11; m++) months.push({ month: m, year: startYear });
@@ -443,28 +360,99 @@
                 return months;
             }, [startYear]);
 
-            // Handlers
+            // Helper to check if a day is "free" (not requiring leave booking)
+            const isFreeDay = (dateStr) => {
+                const d = new Date(dateStr);
+                const dayOfWeek = d.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) return true; // Weekend
+                if (bankHolidaysEnabled && UK_BANK_HOLIDAYS[dateStr]) return true;
+                if (DOC_HOLIDAYS[dateStr]) return true;
+                if (sabbaticals.some(s => dateStr >= s.start && dateStr <= s.end)) return true;
+                return false;
+            };
+
+            // Smart Grouping Logic
+            const dateGroups = useMemo(() => {
+                const dates = Array.from(selectedDates).sort();
+                if (dates.length === 0) return [];
+                
+                const groups = [];
+                let currentGroup = [dates[0]];
+
+                for (let i = 1; i < dates.length; i++) {
+                    const prevDateStr = currentGroup[currentGroup.length - 1];
+                    const currDateStr = dates[i];
+                    
+                    const prevDate = new Date(prevDateStr);
+                    const currDate = new Date(currDateStr);
+                    
+                    // Check gap between dates
+                    let tempDate = new Date(prevDate);
+                    tempDate.setDate(tempDate.getDate() + 1);
+                    
+                    let bridged = true;
+                    while (tempDate < currDate) {
+                        const iso = tempDate.toISOString().split('T')[0];
+                        if (!isFreeDay(iso)) {
+                            bridged = false;
+                            break;
+                        }
+                        tempDate.setDate(tempDate.getDate() + 1);
+                    }
+
+                    if (bridged) {
+                        currentGroup.push(currDateStr);
+                    } else {
+                        groups.push(currentGroup);
+                        currentGroup = [currDateStr];
+                    }
+                }
+                groups.push(currentGroup);
+                return groups;
+            }, [selectedDates, bankHolidaysEnabled, sabbaticals]);
+
+            // Helper to get display string for a group
+            const getGroupDisplayString = (group) => {
+                const startStr = group[0];
+                let endStr = group[group.length - 1];
+                
+                // Logic: Look ahead from endStr. If immediate next days are "Special Holidays" (Bank Holiday or DOC), 
+                // extend the visual range to include them.
+                let checkDate = new Date(endStr);
+                checkDate.setDate(checkDate.getDate() + 1);
+                
+                while(true) {
+                    const checkIso = checkDate.toISOString().split('T')[0];
+                    // We only extend for Bank Holidays, DOCs, or Sabbaticals. 
+                    // Extending for pure weekends is usually not preferred unless bridging to a holiday.
+                    const isSpecialHoliday = 
+                        (bankHolidaysEnabled && UK_BANK_HOLIDAYS[checkIso]) || 
+                        DOC_HOLIDAYS[checkIso] ||
+                        sabbaticals.some(s => checkIso >= s.start && checkIso <= s.end);
+                        
+                    if(isSpecialHoliday) {
+                        endStr = checkIso; // Extend visual end
+                        checkDate.setDate(checkDate.getDate() + 1);
+                    } else {
+                        // Optional: Check if it's a weekend that leads to a special holiday?
+                        // For simplicity, we stop if it's just a weekend or a workday.
+                        break;
+                    }
+                }
+
+                if (startStr === endStr) return `${niceDateFormatFull(startStr)} (1d)`;
+                return `${niceDateFormatFull(startStr)} — ${niceDateFormatFull(endStr)} (${group.length}d)`;
+            };
+
             const handleDateClick = (dateStr, isBankHoliday, isDocHoliday, isSabbatical) => {
                 const newSet = new Set(selectedDates);
-                
                 if (newSet.has(dateStr)) {
                     newSet.delete(dateStr);
                 } else {
-                    if (isBankHoliday && bankHolidaysEnabled) {
-                        alert("That's a Bank Holiday! Usually you don't need to book this.");
-                        return; 
-                    }
-                    if (isDocHoliday) {
-                        alert("That's a Day of Care Holiday! You don't need to book this.");
-                        return; 
-                    }
-                    if (isSabbatical) {
-                         if(!confirm("This is within a Sabbatical period. Do you still want to book this as personal leave?")) return;
-                    }
-                    if (used >= allowance) {
-                        alert("You have reached your leave allowance limit!");
-                        return;
-                    }
+                    if (isBankHoliday && bankHolidaysEnabled) { return alert("That's a Bank Holiday! Usually you don't need to book this."); }
+                    if (isDocHoliday) { return alert("That's a Day of Care Holiday! You don't need to book this."); }
+                    if (isSabbatical) { if(!confirm("This is within a Sabbatical period. Do you still want to book this?")) return; }
+                    if (used >= allowance) { return alert("You have reached your leave allowance limit!"); }
                     newSet.add(dateStr);
                 }
                 setSelectedDates(newSet);
@@ -476,146 +464,61 @@
                 setSelectedDates(newSet);
             };
 
-            const clearAll = () => {
-                if(confirm("Are you sure you want to clear all selected dates?")) {
-                    setSelectedDates(new Set());
-                }
-            };
-
+            const clearAll = () => { if(confirm("Clear all selected dates?")) setSelectedDates(new Set()); };
+            
             const addSabbatical = () => {
-                if(!sabStart || !sabEnd) return alert("Please select start and end dates");
-                if(sabStart > sabEnd) return alert("Start date must be before end date");
-                
+                if(!sabStart || !sabEnd) return alert("Select start/end");
+                if(sabStart > sabEnd) return alert("Invalid range");
                 setSabbaticals([...sabbaticals, { id: Date.now(), start: sabStart, end: sabEnd }]);
-                setSabStart("");
-                setSabEnd("");
+                setSabStart(""); setSabEnd("");
             };
-
-            const removeSabbatical = (id) => {
-                setSabbaticals(sabbaticals.filter(s => s.id !== id));
-            };
-
-            // Group Dates for Display
-            const dateGroups = useMemo(() => {
-                const dates = Array.from(selectedDates).sort();
-                if (dates.length === 0) return [];
-                
-                const groups = [];
-                let currentGroup = [dates[0]];
-
-                for (let i = 1; i < dates.length; i++) {
-                    const date = new Date(dates[i]);
-                    const prevDate = new Date(currentGroup[currentGroup.length - 1]);
-                    const diffTime = Math.abs(date - prevDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
-                    if (diffDays === 1) {
-                        currentGroup.push(dates[i]);
-                    } else {
-                        groups.push(currentGroup);
-                        currentGroup = [dates[i]];
-                    }
-                }
-                groups.push(currentGroup);
-                return groups;
-            }, [selectedDates]);
+            const removeSabbatical = (id) => setSabbaticals(sabbaticals.filter(s => s.id !== id));
 
             return (
                 <div className="min-h-screen flex flex-col xl:flex-row max-w-[1600px] mx-auto p-4 md:p-6 gap-6">
-                    
-                    {/* MAIN CONTENT AREA */}
                     <div className="flex-1 flex flex-col gap-6">
-                        
-                        {/* Header */}
                         <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                                    <Icons.Calendar /> Annual Leave Planner
-                                </h1>
-                                <p className="text-slate-500 text-sm mt-1">
-                                    Planning for: <span className="font-semibold text-blue-600">1 Apr {startYear} — 31 Mar {startYear + 1}</span>
-                                </p>
+                                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.Calendar /> Annual Leave Planner</h1>
+                                <p className="text-slate-500 text-sm mt-1">Planning for: <span className="font-semibold text-blue-600">1 Apr {startYear} — 31 Mar {startYear + 1}</span></p>
                             </div>
-
                             <div className="flex flex-wrap items-center gap-3">
-                                {/* Year Selector */}
                                 <div className="flex items-center bg-slate-100 rounded-lg p-1">
                                     <button onClick={() => setStartYear(y => y - 1)} className="p-2 hover:bg-white rounded-md transition-colors text-slate-600"><Icons.ChevronLeft /></button>
                                     <span className="font-bold text-slate-700 px-3">{startYear} - {String(startYear+1).slice(-2)}</span>
                                     <button onClick={() => setStartYear(y => y + 1)} className="p-2 hover:bg-white rounded-md transition-colors text-slate-600"><Icons.ChevronRight /></button>
                                 </div>
-                                
-                                <button 
-                                    onClick={() => setShowSettings(!showSettings)}
-                                    className={`p-2.5 rounded-lg border transition-colors ${showSettings ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                    title="Settings"
-                                >
-                                    <Icons.Settings />
-                                </button>
+                                <button onClick={() => setShowSettings(!showSettings)} className={`p-2.5 rounded-lg border transition-colors ${showSettings ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}><Icons.Settings /></button>
                             </div>
                         </header>
 
-                        {/* Settings Panel (Collapsible) */}
                         {showSettings && (
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 animate-fade-in">
                                 <h2 className="text-lg font-bold text-slate-800 mb-4">Configuration</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <div className="flex flex-col gap-2">
                                         <label className="text-sm font-medium text-slate-600">Employee Name</label>
-                                        <input 
-                                            type="text" 
-                                            value={userName} 
-                                            onChange={(e) => setUserName(e.target.value)}
-                                            className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        />
+                                        <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"/>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label className="text-sm font-medium text-slate-600">Total Allowance (Days)</label>
-                                        <input 
-                                            type="number" 
-                                            value={allowance} 
-                                            onChange={(e) => setAllowance(parseInt(e.target.value) || 0)}
-                                            className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        />
+                                        <input type="number" value={allowance} onChange={(e) => setAllowance(parseInt(e.target.value) || 0)} className="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"/>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label className="text-sm font-medium text-slate-600">Bank Holidays</label>
                                         <label className="flex items-center gap-2 cursor-pointer mt-2">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={bankHolidaysEnabled} 
-                                                onChange={(e) => setBankHolidaysEnabled(e.target.checked)}
-                                                className="w-5 h-5 accent-blue-600 rounded"
-                                            />
-                                            <span className="text-slate-700">Show & Exclude from Allowance</span>
+                                            <input type="checkbox" checked={bankHolidaysEnabled} onChange={(e) => setBankHolidaysEnabled(e.target.checked)} className="w-5 h-5 accent-blue-600 rounded"/>
+                                            <span className="text-slate-700">Show & Exclude</span>
                                         </label>
                                     </div>
-                                    
-                                    {/* Sabbaticals Section */}
                                     <div className="flex flex-col gap-2 lg:col-span-2">
                                         <label className="text-sm font-medium text-slate-600">Sabbatical / Shutdown Periods</label>
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <input 
-                                                type="date" 
-                                                value={sabStart} 
-                                                onChange={e => setSabStart(e.target.value)} 
-                                                className="text-xs border rounded px-2 py-2 flex-1 min-w-[120px]" 
-                                            />
+                                            <input type="date" value={sabStart} onChange={e => setSabStart(e.target.value)} className="text-xs border rounded px-2 py-2 flex-1 min-w-[120px]" />
                                             <span className="text-slate-400">-</span>
-                                            <input 
-                                                type="date" 
-                                                value={sabEnd} 
-                                                onChange={e => setSabEnd(e.target.value)} 
-                                                className="text-xs border rounded px-2 py-2 flex-1 min-w-[120px]" 
-                                            />
-                                            <button 
-                                                onClick={addSabbatical}
-                                                className="bg-blue-600 text-white rounded p-2 hover:bg-blue-700"
-                                            >
-                                                <Icons.Plus />
-                                            </button>
+                                            <input type="date" value={sabEnd} onChange={e => setSabEnd(e.target.value)} className="text-xs border rounded px-2 py-2 flex-1 min-w-[120px]" />
+                                            <button onClick={addSabbatical} className="bg-blue-600 text-white rounded p-2 hover:bg-blue-700"><Icons.Plus /></button>
                                         </div>
-                                        {/* List of Sabbaticals */}
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {sabbaticals.map(s => (
                                                 <div key={s.id} className="bg-purple-50 border border-purple-200 text-purple-700 text-xs px-2 py-1 rounded flex items-center gap-2">
@@ -629,9 +532,8 @@
                             </div>
                         )}
 
-                        {/* Calendar Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {calendarMonths.map((m, idx) => (
+                            {calendarMonths.map((m) => (
                                 <CalendarMonth 
                                     key={`${m.year}-${m.month}`}
                                     monthIndex={m.month}
@@ -645,13 +547,9 @@
                         </div>
                     </div>
 
-                    {/* SIDEBAR / SUMMARY */}
                     <div className="xl:w-80 w-full shrink-0 flex flex-col gap-6">
-                        
-                        {/* Stats Card */}
                         <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 sticky top-6">
                             <h2 className="font-bold text-lg text-slate-800 mb-4">Summary</h2>
-                            
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-slate-500">Allowance</span>
                                 <span className="font-bold text-slate-800">{allowance}</span>
@@ -661,39 +559,19 @@
                                 <span className={`font-bold ${used > allowance ? 'text-red-500' : 'text-blue-600'}`}>{used}</span>
                             </div>
                             <div className="w-full bg-slate-100 rounded-full h-2.5 mb-4 overflow-hidden">
-                                <div 
-                                    className={`h-2.5 rounded-full ${used > allowance ? 'bg-red-500' : 'bg-blue-600'}`} 
-                                    style={{ width: `${Math.min((used / allowance) * 100, 100)}%` }}
-                                ></div>
+                                <div className={`h-2.5 rounded-full ${used > allowance ? 'bg-red-500' : 'bg-blue-600'}`} style={{ width: `${Math.min((used / allowance) * 100, 100)}%` }}></div>
                             </div>
                             <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                                 <span className="text-slate-500 font-medium">Remaining</span>
                                 <span className="text-2xl font-bold text-slate-800">{remaining}</span>
                             </div>
                             {remaining < 0 && (
-                                <div className="mt-3 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2">
-                                    <Icons.Alert />
-                                    Over allowance by {Math.abs(remaining)} days
-                                </div>
+                                <div className="mt-3 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2"><Icons.Alert /> Over allowance by {Math.abs(remaining)} days</div>
                             )}
-
-                            {/* Actions */}
-                            <ExportPanel 
-                                selectedDates={selectedDates} 
-                                allowance={allowance} 
-                                userName={userName}
-                                leaveYear={`${startYear}-${startYear+1}`}
-                            />
-                            
-                            <button 
-                                onClick={clearAll}
-                                className="w-full mt-3 text-slate-400 hover:text-slate-600 text-xs text-center hover:underline"
-                            >
-                                Clear all dates
-                            </button>
+                            <ExportPanel selectedDates={selectedDates} allowance={allowance} userName={userName} leaveYear={`${startYear}-${startYear+1}`} />
+                            <button onClick={clearAll} className="w-full mt-3 text-slate-400 hover:text-slate-600 text-xs text-center hover:underline">Clear all dates</button>
                         </div>
 
-                        {/* Selected Dates List */}
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden max-h-[500px]">
                             <div className="p-4 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center">
                                 <span>Selected Dates</span>
@@ -701,9 +579,7 @@
                             </div>
                             <div className="overflow-y-auto custom-scroll p-2 flex-1">
                                 {dateGroups.length === 0 ? (
-                                    <div className="text-center py-8 text-slate-400 text-sm">
-                                        No dates selected. <br/>Click on the calendar to start.
-                                    </div>
+                                    <div className="text-center py-8 text-slate-400 text-sm">No dates selected. <br/>Click on the calendar to start.</div>
                                 ) : (
                                     <ul className="space-y-1">
                                         {dateGroups.map((group, idx) => (
@@ -711,19 +587,10 @@
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                                                     <span className="text-slate-700">
-                                                        {group.length === 1 
-                                                            ? niceDateFormat(group[0]) 
-                                                            : `${niceDateFormat(group[0])} — ${niceDateFormat(group[group.length - 1])}`
-                                                        }
+                                                        {getGroupDisplayString(group)}
                                                     </span>
                                                 </div>
-                                                <button 
-                                                    onClick={() => removeRange(group)}
-                                                    className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                    title="Remove period"
-                                                >
-                                                    <Icons.Trash />
-                                                </button>
+                                                <button onClick={() => removeRange(group)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all" title="Remove period"><Icons.Trash /></button>
                                             </li>
                                         ))}
                                     </ul>
@@ -731,34 +598,14 @@
                             </div>
                         </div>
 
-                        {/* Legend */}
                         <div className="bg-white p-4 rounded-xl border border-slate-200 text-xs text-slate-500 space-y-2">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-blue-600 rounded"></div>
-                                <span>Selected Leave</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded"></div>
-                                <span>Bank Holiday</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-emerald-50 border border-emerald-200 rounded"></div>
-                                <span>Day of Care</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-cyan-50 border border-cyan-200 border-dashed rounded"></div>
-                                <span>Day of Care (Predicted)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-slate-100 border border-slate-100 rounded"></div>
-                                <span>Weekend</span>
-                            </div>
-                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-purple-50 border border-purple-200 rounded"></div>
-                                <span>Sabbatical / Shutdown</span>
-                            </div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-600 rounded"></div><span>Selected Leave</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-amber-50 border border-amber-200 rounded"></div><span>Bank Holiday</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-50 border border-emerald-200 rounded"></div><span>Day of Care</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-cyan-50 border border-cyan-200 border-dashed rounded"></div><span>Day of Care (Predicted)</span></div>
+                            <div className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-100 border border-slate-100 rounded"></div><span>Weekend</span></div>
+                             <div className="flex items-center gap-2"><div className="w-3 h-3 bg-purple-50 border border-purple-200 rounded"></div><span>Sabbatical / Shutdown</span></div>
                         </div>
-
                     </div>
                 </div>
             );
@@ -767,5 +614,6 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+
 </body>
 </html>
