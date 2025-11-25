@@ -49,7 +49,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useCallback } = React;
 
         // --- ICONS ---
         const Icons = {
@@ -100,7 +100,7 @@
         };
 
         // --- COMPONENTS ---
-        const CalendarDay = ({ day, month, year, selected, bankHolidayName, docHolidayName, isSabbatical, onClick }) => {
+        const CalendarDay = ({ day, month, year, selected, inDragPreview, dragMode, bankHolidayName, docHolidayName, isSabbatical, onMouseDown, onMouseEnter }) => {
             if (!day) return <div className="h-10 sm:h-12 bg-transparent"></div>;
 
             const isWknd = isWeekend(year, month, day);
@@ -143,11 +143,27 @@
                 textClass = "text-white font-semibold";
                 borderClass = "border border-blue-600";
             }
+            
+            // --- Drag Preview Logic ---
+            if (inDragPreview) {
+                if (dragMode === 'select' && !selected) {
+                    // Selecting (Blue)
+                    bgClass = "bg-blue-200";
+                    textClass = "text-blue-800";
+                    borderClass = "border border-blue-300";
+                } else if (dragMode === 'deselect' && selected) {
+                    // Deselecting (Red/Remove)
+                    bgClass = "bg-red-200";
+                    textClass = "text-red-800";
+                    borderClass = "border border-red-300";
+                }
+            }
 
             return (
                 <div 
-                    onClick={() => onClick(day)}
-                    className={`h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-200 relative ${bgClass} ${textClass} ${borderClass} ${cursorClass}`}
+                    onMouseDown={() => onMouseDown(day)}
+                    onMouseEnter={() => onMouseEnter(day)}
+                    className={`h-10 sm:h-12 flex flex-col items-center justify-center text-sm rounded-lg transition-all duration-100 relative ${bgClass} ${textClass} ${borderClass} ${cursorClass} select-none`}
                     title={isBankHol ? bankHolidayName : (isDocHol ? docHolidayName : (isSabbatical ? "Sabbatical Period" : ""))}
                 >
                     <span>{day}</span>
@@ -158,12 +174,20 @@
             );
         };
 
-        const CalendarMonth = ({ monthIndex, year, selectedDates, onDateClick, showBankHolidays, showDoc, sabbaticals }) => {
+        const CalendarMonth = ({ monthIndex, year, selectedDates, dragStart, dragCurrent, dragMode, onDateMouseDown, onDateMouseEnter, showBankHolidays, showDoc, sabbaticals }) => {
             const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
             const firstDayIndex = new Date(year, monthIndex, 1).getDay(); // 0 = Sun
             const days = [];
             for (let i = 0; i < firstDayIndex; i++) days.push(null);
             for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+            // Helper to determine if a date is inside the current drag selection
+            const isDateInDragRange = (dateStr) => {
+                if (!dragStart || !dragCurrent) return false;
+                const start = dragStart < dragCurrent ? dragStart : dragCurrent;
+                const end = dragStart < dragCurrent ? dragCurrent : dragStart;
+                return dateStr >= start && dateStr <= end;
+            };
 
             return (
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm break-inside-avoid">
@@ -179,6 +203,7 @@
                             
                             const dateStr = toDateString(year, monthIndex, day);
                             const isSelected = selectedDates.has(dateStr);
+                            const inDrag = isDateInDragRange(dateStr);
                             const bhName = showBankHolidays ? UK_BANK_HOLIDAYS[dateStr] : null;
                             const docName = showDoc ? DOC_HOLIDAYS[dateStr] : null;
                             const isSabbatical = sabbaticals.some(range => dateStr >= range.start && dateStr <= range.end);
@@ -190,10 +215,13 @@
                                     month={monthIndex}
                                     year={year}
                                     selected={isSelected}
+                                    inDragPreview={inDrag}
+                                    dragMode={dragMode}
                                     bankHolidayName={bhName}
                                     docHolidayName={docName}
                                     isSabbatical={isSabbatical}
-                                    onClick={() => onDateClick(dateStr, bhName, docName, isSabbatical)}
+                                    onMouseDown={() => onDateMouseDown(dateStr, bhName, docName, isSabbatical)}
+                                    onMouseEnter={() => onDateMouseEnter(dateStr)}
                                 />
                             );
                         })}
@@ -299,6 +327,12 @@
             const [sabEnd, setSabEnd] = useState("");
             const [showSettings, setShowSettings] = useState(false);
 
+            // Drag State
+            const [dragStart, setDragStart] = useState(null);
+            const [dragCurrent, setDragCurrent] = useState(null);
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragMode, setDragMode] = useState('select'); // 'select' or 'deselect'
+
             useEffect(() => {
                 const saved = localStorage.getItem('annual-leave-data');
                 if (saved) {
@@ -344,6 +378,102 @@
                 if (sabbaticals.some(s => dateStr >= s.start && dateStr <= s.end)) return true;
                 return false;
             };
+
+            // --- DRAG HANDLERS ---
+            const handleDateMouseDown = (dateStr, isBankHoliday, isDocHoliday, isSabbatical) => {
+                // Determine if we are starting a selection or a deselection
+                // If I click on an already selected date -> Deselect Mode
+                const isSelected = selectedDates.has(dateStr);
+                setDragMode(isSelected ? 'deselect' : 'select');
+
+                setDragStart(dateStr);
+                setDragCurrent(dateStr);
+                setIsDragging(true);
+            };
+
+            const handleDateMouseEnter = (dateStr) => {
+                if (isDragging) {
+                    setDragCurrent(dateStr);
+                }
+            };
+
+            const handleGlobalMouseUp = useCallback(() => {
+                if (!isDragging || !dragStart || !dragCurrent) return;
+
+                // End drag
+                setIsDragging(false);
+
+                // If start === current, it was a click (Toggle logic)
+                if (dragStart === dragCurrent) {
+                    const newSet = new Set(selectedDates);
+                    
+                    // Re-check validity for single click
+                    const isBankHoliday = bankHolidaysEnabled && UK_BANK_HOLIDAYS[dragStart];
+                    const isDocHoliday = docEnabled && DOC_HOLIDAYS[dragStart];
+                    const isSabbatical = sabbaticals.some(s => dragStart >= s.start && dragStart <= s.end);
+
+                    if (isBankHoliday) { alert("That's a Bank Holiday! Usually you don't need to book this."); }
+                    else if (isDocHoliday) { alert("That's a Day of Care Holiday! You don't need to book this."); }
+                    else if (isSabbatical) { 
+                        if(confirm("This is within a Sabbatical period. Do you still want to book this?")) {
+                             if (newSet.has(dragStart)) newSet.delete(dragStart); else newSet.add(dragStart);
+                             setSelectedDates(newSet);
+                        }
+                    } else {
+                        // Normal toggle
+                        if (newSet.has(dragStart)) {
+                            newSet.delete(dragStart);
+                        } else {
+                            if (used >= allowance) { alert("You have reached your leave allowance limit!"); }
+                            else { newSet.add(dragStart); }
+                        }
+                        setSelectedDates(newSet);
+                    }
+                } else {
+                    // It was a drag (Range logic)
+                    const start = dragStart < dragCurrent ? dragStart : dragCurrent;
+                    const end = dragStart < dragCurrent ? dragCurrent : dragStart;
+                    
+                    const newSet = new Set(selectedDates);
+                    let tempDate = new Date(start);
+                    const endDate = new Date(end);
+                    let countModifier = 0;
+
+                    while (tempDate <= endDate) {
+                        const iso = tempDate.toISOString().split('T')[0];
+                        
+                        // Range Logic
+                        if (dragMode === 'select') {
+                            // Only add if not free day and not already selected
+                            if (!isFreeDay(iso) && !newSet.has(iso)) {
+                                if (used + countModifier < allowance) {
+                                    newSet.add(iso);
+                                    countModifier++;
+                                }
+                            }
+                        } else {
+                            // Deselect mode: Remove if present
+                            if (newSet.has(iso)) {
+                                newSet.delete(iso);
+                            }
+                        }
+                        tempDate.setDate(tempDate.getDate() + 1);
+                    }
+                    setSelectedDates(newSet);
+                }
+
+                setDragStart(null);
+                setDragCurrent(null);
+            }, [isDragging, dragStart, dragCurrent, dragMode, selectedDates, used, allowance, bankHolidaysEnabled, docEnabled, sabbaticals]);
+
+            // Attach global mouseup listener
+            useEffect(() => {
+                window.addEventListener('mouseup', handleGlobalMouseUp);
+                return () => {
+                    window.removeEventListener('mouseup', handleGlobalMouseUp);
+                };
+            }, [handleGlobalMouseUp]);
+
 
             // Smart Grouping Logic
             const dateGroups = useMemo(() => {
@@ -394,7 +524,6 @@
                 let tempDate = new Date(lastBookedDate);
                 tempDate.setUTCHours(12, 0, 0, 0);
 
-                // 1. Scan forward from last booked day and collect ALL contiguous non-working days
                 const potentialExtensions = [];
                 
                 while(true) {
@@ -412,38 +541,19 @@
                     if (isWeekendDay || isHoliday) {
                         potentialExtensions.push({ date: iso, isHoliday });
                     } else {
-                        // We hit a normal work day. Stop scanning.
                         break;
                     }
                 }
 
-                // 2. Backtrack from the furthest reached point
-                // We are looking for the last "Holiday". If we find one, that's our visual end.
-                // If we only find weekends in the chain, we ignore them (so end date stays as lastBookedDate).
-                
                 for (let i = potentialExtensions.length - 1; i >= 0; i--) {
                     if (potentialExtensions[i].isHoliday) {
                         finalVisualEnd = potentialExtensions[i].date;
-                        break; // Found the last holiday in the chain. Stop.
+                        break;
                     }
                 }
 
                 if (startStr === finalVisualEnd) return `${niceDateFormatFull(startStr)} (1d)`;
                 return `${niceDateFormatFull(startStr)} — ${niceDateFormatFull(finalVisualEnd)} (${group.length}d)`;
-            };
-
-            const handleDateClick = (dateStr, isBankHoliday, isDocHoliday, isSabbatical) => {
-                const newSet = new Set(selectedDates);
-                if (newSet.has(dateStr)) {
-                    newSet.delete(dateStr);
-                } else {
-                    if (isBankHoliday && bankHolidaysEnabled) { return alert("That's a Bank Holiday! Usually you don't need to book this."); }
-                    if (isDocHoliday) { return alert("That's a Day of Care Holiday! You don't need to book this."); }
-                    if (isSabbatical) { if(!confirm("This is within a Sabbatical period. Do you still want to book this?")) return; }
-                    if (used >= allowance) { return alert("You have reached your leave allowance limit!"); }
-                    newSet.add(dateStr);
-                }
-                setSelectedDates(newSet);
             };
 
             const removeRange = (datesToRemove) => {
@@ -528,14 +638,18 @@
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 select-none">
                             {calendarMonths.map((m) => (
                                 <CalendarMonth 
                                     key={`${m.year}-${m.month}`}
                                     monthIndex={m.month}
                                     year={m.year}
                                     selectedDates={selectedDates}
-                                    onDateClick={handleDateClick}
+                                    dragStart={dragStart}
+                                    dragCurrent={dragCurrent}
+                                    dragMode={dragMode}
+                                    onDateMouseDown={handleDateMouseDown}
+                                    onDateMouseEnter={handleDateMouseEnter}
                                     showBankHolidays={bankHolidaysEnabled}
                                     showDoc={docEnabled}
                                     sabbaticals={sabbaticals}
@@ -635,5 +749,6 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+
 </body>
 </html>
