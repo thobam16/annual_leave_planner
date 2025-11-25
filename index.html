@@ -62,7 +62,8 @@
             Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
             Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
             Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Tag: () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
         };
 
         // --- UTILS & DATA ---
@@ -206,45 +207,28 @@
             );
         };
 
-        const ExportPanel = ({ selectedDates, allowance, userName, leaveYear }) => {
+        const ExportPanel = ({ selectedDates, allowance, userName, leaveYear, dateGroups, groupLabels, getGroupDisplayString }) => {
             const generateICS = () => {
                 const dates = Array.from(selectedDates).sort();
                 if (dates.length === 0) return alert("No dates selected");
-                const events = [];
-                let currentRange = null;
-
-                const addRange = (range) => {
-                    const start = range[0].replace(/-/g, '');
-                    const endDateObj = new Date(range[range.length - 1]);
-                    endDateObj.setDate(endDateObj.getDate() + 1);
-                    const end = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
-                    events.push({ start, end });
-                };
-
-                dates.forEach((dateStr) => {
-                    const currentDate = new Date(dateStr);
-                    if (!currentRange) {
-                        currentRange = [dateStr];
-                    } else {
-                        const lastDate = new Date(currentRange[currentRange.length - 1]);
-                        const diffTime = Math.abs(currentDate - lastDate);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                        if (diffDays === 1) {
-                            currentRange.push(dateStr);
-                        } else {
-                            addRange(currentRange);
-                            currentRange = [dateStr];
-                        }
-                    }
-                });
-                if (currentRange) addRange(currentRange);
-
+                
+                // Use dateGroups from props instead of recalculating, to allow attaching labels
                 let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//AnnualLeavePlanner//EN\r\n";
-                events.forEach(evt => {
+                
+                dateGroups.forEach(group => {
+                    const startStr = group[0];
+                    const endStr = group[group.length - 1];
+                    const label = groupLabels[startStr] || "Annual Leave";
+                    
+                    const start = startStr.replace(/-/g, '');
+                    const endDateObj = new Date(endStr);
+                    endDateObj.setDate(endDateObj.getDate() + 1); // ICS end date is exclusive
+                    const end = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
+
                     icsContent += "BEGIN:VEVENT\r\n";
-                    icsContent += `DTSTART;VALUE=DATE:${evt.start}\r\n`;
-                    icsContent += `DTEND;VALUE=DATE:${evt.end}\r\n`;
-                    icsContent += "SUMMARY:Annual Leave\r\n";
+                    icsContent += `DTSTART;VALUE=DATE:${start}\r\n`;
+                    icsContent += `DTEND;VALUE=DATE:${end}\r\n`;
+                    icsContent += `SUMMARY:${label}\r\n`;
                     icsContent += "TRANSP:OPAQUE\r\n";
                     icsContent += "END:VEVENT\r\n";
                 });
@@ -275,29 +259,22 @@
                 doc.setFontSize(10);
                 doc.setTextColor(0);
                 let y = 60, x = 20;
-                const byMonth = {};
-                dates.forEach(d => {
-                    const m = d.substring(0, 7);
-                    if(!byMonth[m]) byMonth[m] = [];
-                    byMonth[m].push(d);
+                
+                // Print summarized groups instead of individual dates
+                doc.setFont(undefined, 'bold');
+                doc.text("Planned Periods:", x, y);
+                y += 8;
+                doc.setFont(undefined, 'normal');
+
+                dateGroups.forEach(group => {
+                     if (y > 280) { doc.addPage(); y = 20; }
+                     const startDate = group[0];
+                     const label = groupLabels[startDate] ? ` - ${groupLabels[startDate]}` : "";
+                     const display = getGroupDisplayString(group);
+                     doc.text(`• ${display}${label}`, x + 5, y);
+                     y += 6;
                 });
-                Object.keys(byMonth).forEach(monthKey => {
-                    if (y > 270) { doc.addPage(); y = 20; }
-                    const [yr, mo] = monthKey.split('-');
-                    const monthName = MONTH_NAMES[parseInt(mo) - 1];
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${monthName} ${yr}`, x, y);
-                    y += 6;
-                    doc.setFont(undefined, 'normal');
-                    byMonth[monthKey].forEach(dateStr => {
-                         if (y > 280) { doc.addPage(); y = 20; }
-                        const d = new Date(dateStr);
-                        const fmt = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-                        doc.text(`• ${fmt}`, x + 5, y);
-                        y += 5;
-                    });
-                    y += 5;
-                });
+
                 doc.save(`leave_report_${leaveYear}.pdf`);
             };
 
@@ -320,6 +297,7 @@
                 return now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
             });
             const [selectedDates, setSelectedDates] = useState(new Set());
+            const [groupLabels, setGroupLabels] = useState({}); // New state for labels
             const [bankHolidaysEnabled, setBankHolidaysEnabled] = useState(true);
             const [userName, setUserName] = useState("My Leave");
             const [sabbaticals, setSabbaticals] = useState([]);
@@ -334,6 +312,7 @@
                     setAllowance(data.allowance || 30);
                     setStartYear(data.startYear || new Date().getFullYear());
                     setSelectedDates(new Set(data.selectedDates || []));
+                    setGroupLabels(data.groupLabels || {});
                     setBankHolidaysEnabled(data.bankHolidaysEnabled ?? true);
                     setUserName(data.userName || "My Leave");
                     if(Array.isArray(data.sabbaticals)) {
@@ -346,9 +325,9 @@
 
             useEffect(() => {
                 localStorage.setItem('annual-leave-data', JSON.stringify({
-                    allowance, startYear, selectedDates: Array.from(selectedDates), bankHolidaysEnabled, userName, sabbaticals
+                    allowance, startYear, selectedDates: Array.from(selectedDates), groupLabels, bankHolidaysEnabled, userName, sabbaticals
                 }));
-            }, [allowance, startYear, selectedDates, bankHolidaysEnabled, userName, sabbaticals]);
+            }, [allowance, startYear, selectedDates, groupLabels, bankHolidaysEnabled, userName, sabbaticals]);
 
             const used = selectedDates.size;
             const remaining = allowance - used;
@@ -424,7 +403,6 @@
                 while(true) {
                     const checkIso = checkDate.toISOString().split('T')[0];
                     // We only extend for Bank Holidays, DOCs, or Sabbaticals. 
-                    // Extending for pure weekends is usually not preferred unless bridging to a holiday.
                     const isSpecialHoliday = 
                         (bankHolidaysEnabled && UK_BANK_HOLIDAYS[checkIso]) || 
                         DOC_HOLIDAYS[checkIso] ||
@@ -434,8 +412,6 @@
                         endStr = checkIso; // Extend visual end
                         checkDate.setDate(checkDate.getDate() + 1);
                     } else {
-                        // Optional: Check if it's a weekend that leads to a special holiday?
-                        // For simplicity, we stop if it's just a weekend or a workday.
                         break;
                     }
                 }
@@ -464,7 +440,11 @@
                 setSelectedDates(newSet);
             };
 
-            const clearAll = () => { if(confirm("Clear all selected dates?")) setSelectedDates(new Set()); };
+            const updateLabel = (startDate, text) => {
+                setGroupLabels(prev => ({ ...prev, [startDate]: text }));
+            };
+
+            const clearAll = () => { if(confirm("Clear all selected dates?")) { setSelectedDates(new Set()); setGroupLabels({}); }};
             
             const addSabbatical = () => {
                 if(!sabStart || !sabEnd) return alert("Select start/end");
@@ -568,7 +548,15 @@
                             {remaining < 0 && (
                                 <div className="mt-3 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2"><Icons.Alert /> Over allowance by {Math.abs(remaining)} days</div>
                             )}
-                            <ExportPanel selectedDates={selectedDates} allowance={allowance} userName={userName} leaveYear={`${startYear}-${startYear+1}`} />
+                            <ExportPanel 
+                                selectedDates={selectedDates} 
+                                allowance={allowance} 
+                                userName={userName} 
+                                leaveYear={`${startYear}-${startYear+1}`} 
+                                dateGroups={dateGroups}
+                                groupLabels={groupLabels}
+                                getGroupDisplayString={getGroupDisplayString}
+                            />
                             <button onClick={clearAll} className="w-full mt-3 text-slate-400 hover:text-slate-600 text-xs text-center hover:underline">Clear all dates</button>
                         </div>
 
@@ -582,17 +570,33 @@
                                     <div className="text-center py-8 text-slate-400 text-sm">No dates selected. <br/>Click on the calendar to start.</div>
                                 ) : (
                                     <ul className="space-y-1">
-                                        {dateGroups.map((group, idx) => (
-                                            <li key={idx} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group text-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                                                    <span className="text-slate-700">
-                                                        {getGroupDisplayString(group)}
-                                                    </span>
-                                                </div>
-                                                <button onClick={() => removeRange(group)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all" title="Remove period"><Icons.Trash /></button>
-                                            </li>
-                                        ))}
+                                        {dateGroups.map((group, idx) => {
+                                            const startDate = group[0];
+                                            const label = groupLabels[startDate] || "";
+                                            
+                                            return (
+                                                <li key={idx} className="flex flex-col p-2 hover:bg-slate-50 rounded-lg group text-sm border-b border-slate-50 last:border-0">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></div>
+                                                            <span className="text-slate-700">
+                                                                {getGroupDisplayString(group)}
+                                                            </span>
+                                                        </div>
+                                                        <button onClick={() => removeRange(group)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-2" title="Remove period"><Icons.Trash /></button>
+                                                    </div>
+                                                    <div className="ml-4.5 mt-1">
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="+ Add label (e.g. Vacation)" 
+                                                            value={label}
+                                                            onChange={(e) => updateLabel(startDate, e.target.value)}
+                                                            className="w-full bg-transparent text-xs text-slate-500 focus:text-slate-800 placeholder:text-slate-300 outline-none border-none p-0 focus:ring-0"
+                                                        />
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 )}
                             </div>
