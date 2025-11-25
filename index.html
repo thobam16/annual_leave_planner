@@ -385,34 +385,53 @@
                 return groups;
             }, [selectedDates, bankHolidaysEnabled, docEnabled, sabbaticals]);
 
-            // Helper to get display string for a group
+            // Robust Group Display Logic (Scan & Backtrack)
             const getGroupDisplayString = (group) => {
                 const startStr = group[0];
-                let endStr = group[group.length - 1];
+                const lastBookedDate = group[group.length - 1];
                 
-                // Logic: Look ahead from endStr. If immediate next days are "Special Holidays" (Bank Holiday or DOC), 
-                // extend the visual range to include them.
-                let checkDate = new Date(endStr);
-                checkDate.setDate(checkDate.getDate() + 1);
+                let finalVisualEnd = lastBookedDate;
+                let tempDate = new Date(lastBookedDate);
+                
+                // Use UTC to avoid DST jumps (especially in March) causing 'previous day' errors
+                tempDate.setUTCHours(12, 0, 0, 0);
+
+                // 1. Scan forward from last booked day and collect ALL contiguous non-working days
+                const potentialExtensions = [];
                 
                 while(true) {
-                    const checkIso = checkDate.toISOString().split('T')[0];
-                    // We only extend for Bank Holidays, DOCs, or Sabbaticals. 
-                    const isSpecialHoliday = 
-                        (bankHolidaysEnabled && UK_BANK_HOLIDAYS[checkIso]) || 
-                        (docEnabled && DOC_HOLIDAYS[checkIso]) ||
-                        sabbaticals.some(s => checkIso >= s.start && checkIso <= s.end);
-                        
-                    if(isSpecialHoliday) {
-                        endStr = checkIso; // Extend visual end
-                        checkDate.setDate(checkDate.getDate() + 1);
+                    tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+                    const iso = tempDate.toISOString().split('T')[0];
+                    
+                    const dayOfWeek = tempDate.getUTCDay(); // 0=Sun, 6=Sat
+                    const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+                    
+                    const isBankHol = bankHolidaysEnabled && UK_BANK_HOLIDAYS[iso];
+                    const isDocHol = docEnabled && DOC_HOLIDAYS[iso];
+                    const isSab = sabbaticals.some(s => iso >= s.start && iso <= s.end);
+                    const isHoliday = !!(isBankHol || isDocHol || isSab);
+                    
+                    if (isWeekendDay || isHoliday) {
+                        potentialExtensions.push({ date: iso, isHoliday });
                     } else {
+                        // We hit a normal work day. Stop scanning.
                         break;
                     }
                 }
 
-                if (startStr === endStr) return `${niceDateFormatFull(startStr)} (1d)`;
-                return `${niceDateFormatFull(startStr)} — ${niceDateFormatFull(endStr)} (${group.length}d)`;
+                // 2. Backtrack from the furthest reached point
+                // We are looking for the last "Holiday". If we find one, that's our visual end.
+                // If we only find weekends in the chain, we ignore them (so end date stays as lastBookedDate).
+                
+                for (let i = potentialExtensions.length - 1; i >= 0; i--) {
+                    if (potentialExtensions[i].isHoliday) {
+                        finalVisualEnd = potentialExtensions[i].date;
+                        break; // Found the last holiday in the chain. Stop.
+                    }
+                }
+
+                if (startStr === finalVisualEnd) return `${niceDateFormatFull(startStr)} (1d)`;
+                return `${niceDateFormatFull(startStr)} — ${niceDateFormatFull(finalVisualEnd)} (${group.length}d)`;
             };
 
             const handleDateClick = (dateStr, isBankHoliday, isDocHoliday, isSabbatical) => {
